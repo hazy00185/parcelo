@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "131400928698",
+    "project_id": "parcelo-da4c2",
+    "storage_bucket": "parcelo-da4c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131400928698:android:d2395b9219b08c194a2183",
+        "android_client_info": {
+          "package_name": "com.example.parcelo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBea8LUSNa8qfos9l6rC8o6di5zp-gU1z0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
