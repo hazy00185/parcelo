@@ -1,27 +1,14 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'screens/role_select_screen.dart';
+import 'package:flutter/material.dart';
+
+import 'screens/auth/auth_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase.
   await Firebase.initializeApp();
-
-  // Automatically create/sign in an anonymous Firebase user.
-  // This gives the app an authenticated UID that we can use
-  // with Firestore security rules.
-  if (FirebaseAuth.instance.currentUser == null) {
-    await FirebaseAuth.instance.signInAnonymously();
-  }
-
   runApp(const MyApp());
 }
 
-// Warm orange seed color - fits a delivery/logistics app,
-// and keeps this app visually distinct from the other apps
-// in the internship portfolio.
 const Color kSeedColor = Color(0xFFF97316);
 
 class MyApp extends StatelessWidget {
@@ -43,7 +30,6 @@ class MyApp extends StatelessWidget {
       title: 'Parcelo',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
-
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: lightScheme,
@@ -61,7 +47,6 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: darkScheme,
@@ -79,8 +64,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-
-      home: const RoleSelectScreen(),
+      home: const AuthGate(),
     );
   }
 }

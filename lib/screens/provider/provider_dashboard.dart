@@ -413,9 +413,20 @@ class _ProviderDashboardState extends State<ProviderDashboard> {
                     ? _toggleOnline
                     : null,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 2),
             ],
           ),
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () async {
+              if (_isOnline) {
+                await _toggleOnline(false);
+              }
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: _buildBody(scheme),

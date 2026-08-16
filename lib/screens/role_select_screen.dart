@@ -1,25 +1,89 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import 'customer/customer_dashboard.dart';
 import 'provider/provider_dashboard.dart';
 
-// This screen is the foundation of the "dual-dashboard" requirement:
-// the same app serves two completely different roles, each with its
-// own dedicated interface.
-class RoleSelectScreen extends StatelessWidget {
+class RoleSelectScreen extends StatefulWidget {
   const RoleSelectScreen({super.key});
+
+  @override
+  State<RoleSelectScreen> createState() => _RoleSelectScreenState();
+}
+
+class _RoleSelectScreenState extends State<RoleSelectScreen> {
+  bool _saving = false;
+
+  Future<void> _selectRole(String role) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _saving) return;
+
+    setState(() => _saving = true);
+
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
+        {
+          'uid': user.uid,
+          'name': user.displayName ?? '',
+          'email': user.email,
+          'role': role,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => role == 'customer'
+              ? const CustomerDashboard()
+              : const ProviderDashboard(),
+        ),
+      );
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to save account role: ${e.message ?? e.code}')),
+      );
+    }
+  }
+
+  Future<void> _signOut() async {
+    if (_saving) return;
+    await FirebaseAuth.instance.signOut();
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Set up your account',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            onPressed: _saving ? null : _signOut,
+            icon: const Icon(Icons.logout_rounded),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 22),
               Container(
                 width: 64,
                 height: 64,
@@ -27,45 +91,51 @@ class RoleSelectScreen extends StatelessWidget {
                   color: scheme.primaryContainer,
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(Icons.local_shipping_rounded, color: scheme.onPrimaryContainer, size: 32),
+                child: Icon(
+                  Icons.local_shipping_rounded,
+                  color: scheme.onPrimaryContainer,
+                  size: 32,
+                ),
               ),
               const SizedBox(height: 20),
               Text(
-                'Parcelo',
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: scheme.onSurface),
+                'Welcome${user?.displayName == null || user!.displayName!.trim().isEmpty ? '' : ', ${user.displayName!.trim()}'}',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: scheme.onSurface,
+                ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 7),
               Text(
-                'Fast, reliable delivery — for everyone.',
-                style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant),
+                'Choose how you want to use Parcelo.',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
-              const SizedBox(height: 48),
-              Text(
-                'Continue as',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 36),
               _RoleCard(
                 icon: Icons.person_rounded,
                 title: 'Customer',
                 subtitle: 'Book a delivery and track it live',
                 color: scheme.primary,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CustomerDashboard()),
-                ),
+                loading: _saving,
+                onTap: () => _selectRole('customer'),
               ),
               const SizedBox(height: 14),
               _RoleCard(
                 icon: Icons.two_wheeler_rounded,
                 title: 'Delivery Partner',
-                subtitle: 'Accept requests and go online',
+                subtitle: 'Go online, accept requests and deliver',
                 color: scheme.secondary,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProviderDashboard()),
-                ),
+                loading: _saving,
+                onTap: () => _selectRole('provider'),
               ),
+              if (_saving) ...[
+                const SizedBox(height: 22),
+                const Center(child: CircularProgressIndicator()),
+              ],
             ],
           ),
         ),
@@ -79,6 +149,7 @@ class _RoleCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final Color color;
+  final bool loading;
   final VoidCallback onTap;
 
   const _RoleCard({
@@ -86,26 +157,31 @@ class _RoleCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.color,
+    required this.loading,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+
     return Material(
       color: scheme.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
+        onTap: loading ? null : onTap,
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Icon(icon, color: color),
               ),
               const SizedBox(width: 16),
@@ -113,9 +189,22 @@ class _RoleCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: scheme.onSurface)),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -127,6 +127,13 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               );
             },
           ),
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
           const SizedBox(width: 4),
         ],
       ),
